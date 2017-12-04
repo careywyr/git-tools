@@ -2,6 +2,7 @@ package cn.leafw;
 
 import cn.leafw.git.operation.BaseOperation;
 import cn.leafw.git.dto.GitCpConfig;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.junit.Test;
 
 import java.io.File;
@@ -13,15 +14,17 @@ public class CpTest {
     static {
         GitCpConfig gitCpConfig = new GitCpConfig();
         gitCpConfig.setCurrentBranch("master");
-        gitCpConfig.setRemoteBranch("master");
-        gitCpConfig.setProjectFileDir(new File("E:\\Documents\\GitRepository\\careywyr.github.io\\.git"));
+        gitCpConfig.setRemoteBranch("origin/dev");
+        gitCpConfig.setProjectFileDir(new File("C:\\Document\\GitRepository\\testforgittool\\.git"));
         baseOperation = new BaseOperation(gitCpConfig);
     }
 
     @Test
      public void testLog(){
          try {
-             baseOperation.showLog();
+//             baseOperation.showLog();
+             RevWalk revWalk = baseOperation.showLogSafe("master");
+             revWalk.forEach(e -> System.out.println(e.getShortMessage()));
          } catch (Exception e) {
              e.printStackTrace();
          }

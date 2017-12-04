@@ -1,21 +1,25 @@
 package cn.leafw.git.operation;
 
 import cn.leafw.git.dto.GitCpConfig;
+import org.eclipse.jgit.api.CherryPickCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.RebaseCommand;
-import org.eclipse.jgit.api.RemoteSetUrlCommand;
 import org.eclipse.jgit.errors.IllegalTodoFileModification;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
-import org.eclipse.jgit.lib.RebaseTodoLine;
-import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 /**
@@ -42,11 +46,30 @@ public class BaseOperation {
         LOGGER.info("****合并代码开始,当前分支:{},远程分支:{}****",gitCpConfig.getCurrentBranch(),gitCpConfig.getRemoteBranch());
         Repository repository = new FileRepository(gitCpConfig.getProjectFileDir());
         Git git = new Git(repository);
-        //当前分支的log
-        Iterable<RevCommit> logs =  git.log().call();
-        RemoteSetUrlCommand remoteSetUrlCommand = git.remoteSetUrl();
-        remoteSetUrlCommand.setName("orgin/dev");
-        remoteSetUrlCommand.call();
+        RevWalk currentRevWalk = showLogSafe(gitCpConfig.getCurrentBranch());
+        RevWalk remoteRevWalk = showLogSafe(gitCpConfig.getRemoteBranch());
+        List<ObjectId> currentList = new ArrayList<>();
+        currentRevWalk.forEach(e -> {
+            System.out.println(e.getId());
+            currentList.add(e.getId());
+        });
+        List<ObjectId> remoteList = new ArrayList<>();
+        remoteRevWalk.forEach(e -> {
+            System.out.println(e.getId());
+            remoteList.add(e.getId());
+        });
+        List<ObjectId> diffCommit = remoteList.stream().filter(e -> !currentList.contains(e)).collect(Collectors.toList());
+        CherryPickCommand cherryPickCommand = git.cherryPick();
+        for (ObjectId objectId : diffCommit) {
+            LOGGER.info("commit: {}",objectId.getName());
+            cherryPickCommand.include(objectId).call().;
+            git.add().addFilepattern(".").call();
+            git.commit().setMessage(objectId.getName());
+        }
+
+        CredentialsProvider cp = new UsernamePasswordCredentialsProvider("","");
+        git.push().setCredentialsProvider(cp).call();
+
 
     }
 
@@ -68,6 +91,18 @@ public class BaseOperation {
             LOGGER.info("\t" + log.getShortMessage() + "\n");
         }
     }
+
+    /**
+     * 显示日志 Log 命令内部使用的 RevWalk 是永远不会关闭，此方法相对安全
+     * @throws Exception
+     */
+     public RevWalk showLogSafe(String branch) throws Exception{
+         Repository repository = new FileRepository(gitCpConfig.getProjectFileDir());
+         RevWalk revWalk = new RevWalk(repository);
+         ObjectId commitId = repository.resolve(branch);
+         revWalk.markStart(revWalk.parseCommit(commitId));
+         return revWalk;
+     }
 
     /**
      * 更新代码
