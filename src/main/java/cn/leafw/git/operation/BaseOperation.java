@@ -3,6 +3,7 @@ package cn.leafw.git.operation;
 import cn.leafw.git.dto.GitCpConfig;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.RebaseCommand;
+import org.eclipse.jgit.api.RemoteSetUrlCommand;
 import org.eclipse.jgit.errors.IllegalTodoFileModification;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.RebaseTodoLine;
@@ -41,6 +42,12 @@ public class BaseOperation {
         LOGGER.info("****合并代码开始,当前分支:{},远程分支:{}****",gitCpConfig.getCurrentBranch(),gitCpConfig.getRemoteBranch());
         Repository repository = new FileRepository(gitCpConfig.getProjectFileDir());
         Git git = new Git(repository);
+        //当前分支的log
+        Iterable<RevCommit> logs =  git.log().call();
+        RemoteSetUrlCommand remoteSetUrlCommand = git.remoteSetUrl();
+        remoteSetUrlCommand.setName("orgin/dev");
+        remoteSetUrlCommand.call();
+
     }
 
     /**
