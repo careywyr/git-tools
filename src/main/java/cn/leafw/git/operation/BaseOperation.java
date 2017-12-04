@@ -2,7 +2,10 @@ package cn.leafw.git.operation;
 
 import cn.leafw.git.dto.GitCpConfig;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.RebaseCommand;
+import org.eclipse.jgit.errors.IllegalTodoFileModification;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.RebaseTodoLine;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
@@ -10,6 +13,9 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
+import java.util.List;
+
 
 /**
  * @description 合并代码工具
@@ -65,5 +71,39 @@ public class BaseOperation {
         Repository repository = new FileRepository(gitCpConfig.getProjectFileDir());
         //初始化git命令
         Git git = new Git(repository);
+        //stash
+        git.stashCreate().call();
+        //fetch
+        git.fetch().setCheckFetchedObjects(true).call();
+        //设置rebase规则
+        RebaseCommand.InteractiveHandler handler = new RebaseCommand.InteractiveHandler() {
+            @Override
+            public void prepareSteps(List<RebaseTodoLine> steps) {
+                // the handler receives the list of commits that are rebased, i.e. the ones on the local branch
+                for(RebaseTodoLine step : steps) {
+                    // for each step, you can decide which action should be taken
+                    // default is PICK
+                    try {
+                        // by selecting "EDIT", the rebase will stop and ask you to edit the commit-contents
+                        step.setAction(RebaseTodoLine.Action.EDIT);
+                    } catch (IllegalTodoFileModification e) {
+                        throw new IllegalStateException(e);
+                    }
+                }
+            }
+
+            @Override
+            public String modifyCommitMessage(String oldMessage) {
+                return oldMessage;
+            }
+        };
+        //rebase
+        git.rebase().setUpstream("origin/master").runInteractively(handler).call();
+        Collection<RevCommit> stashList = git.stashList().call();
+        if(null != stashList && stashList.size() > 0){
+            git.stashApply().call();
+        }
+        //将stash清除
+        git.stashDrop().setStashRef(0).call();
     }
 }

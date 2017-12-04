@@ -14,7 +14,7 @@ public class CpTest {
         GitCpConfig gitCpConfig = new GitCpConfig();
         gitCpConfig.setCurrentBranch("master");
         gitCpConfig.setRemoteBranch("master");
-        gitCpConfig.setProjectFileDir(new File("C:\\Document\\GitRepository\\imooc.mmall\\.git"));
+        gitCpConfig.setProjectFileDir(new File("E:\\Documents\\GitRepository\\careywyr.github.io\\.git"));
         baseOperation = new BaseOperation(gitCpConfig);
     }
 
