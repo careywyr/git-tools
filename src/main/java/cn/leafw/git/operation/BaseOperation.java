@@ -66,7 +66,7 @@ public class BaseOperation {
             list.forEach(e -> git.cherryPick().include(e));
         }
 
-        CredentialsProvider cp = new UsernamePasswordCredentialsProvider("","");
+        CredentialsProvider cp = new UsernamePasswordCredentialsProvider(gitCpConfig.getUserAccount(),gitCpConfig.getPassword());
         git.push().setCredentialsProvider(cp).call();
 
 
