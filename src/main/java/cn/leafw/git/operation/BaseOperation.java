@@ -50,21 +50,20 @@ public class BaseOperation {
         RevWalk remoteRevWalk = showLogSafe(gitCpConfig.getRemoteBranch());
         List<ObjectId> currentList = new ArrayList<>();
         currentRevWalk.forEach(e -> {
-            System.out.println(e.getId());
+            LOGGER.info("currentCommit:{}",e.getId());
             currentList.add(e.getId());
         });
         List<ObjectId> remoteList = new ArrayList<>();
         remoteRevWalk.forEach(e -> {
-            System.out.println(e.getId());
+            LOGGER.info("remoteCommit:{}",e.getId());
             remoteList.add(e.getId());
         });
         List<ObjectId> diffCommit = remoteList.stream().filter(e -> !currentList.contains(e)).collect(Collectors.toList());
         CherryPickCommand cherryPickCommand = git.cherryPick();
         for (ObjectId objectId : diffCommit) {
             LOGGER.info("commit: {}",objectId.getName());
-            cherryPickCommand.include(objectId).call().;
-            git.add().addFilepattern(".").call();
-            git.commit().setMessage(objectId.getName());
+            List<Ref> list = cherryPickCommand.include(objectId).call().getCherryPickedRefs();
+            list.forEach(e -> git.cherryPick().include(e));
         }
 
         CredentialsProvider cp = new UsernamePasswordCredentialsProvider("","");
